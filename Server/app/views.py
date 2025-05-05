@@ -1,50 +1,73 @@
-from rest_framework import generics
-from rest_framework.views import APIView
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from rest_framework import status
-from .models import Assiduidade,Funcionario
-from .serializers import AssiduidadeSerializer,FuncionarioSerializer
+from rest_framework import status, viewsets
+from .models import Departamento, CampoPersonalizado, Role, Funcionario
+from .serializers import (
+    DepartamentoSerializer, Campo_PersonalizadoSerializer,
+    RoleSerializer, FuncionarioSerializer
+)
 
-class AssiduidadeSaidaUpdateView(APIView):
-    """
-    View para atualizar apenas o campo 'saida' de um registro de assiduidade.
-    """
-    def get_object(self, pk):
-        try:
-            return Assiduidade.objects.get(pk=pk)
-        except Assiduidade.DoesNotExist:
-            return None
+@api_view(['GET', 'POST'])
+def batch_config(request):
+    if request.method == 'GET':
+        deps = DepartamentoSerializer(Departamento.objects.all(), many=True)
+        fields = Campo_PersonalizadoSerializer(CampoPersonalizado.objects.all(), many=True)
+        roles = RoleSerializer(Role.objects.all(), many=True)
+        return Response({
+            'departments': deps.data,
+            'Custom_Fields': fields.data,
+            'roles': roles.data,
+        })
 
-    def put(self, request, pk):
-        assiduidade = self.get_object(pk)
-        if not assiduidade:
-            return Response({"detail": "Registro não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+    Departamento.objects.all().delete()
+    CampoPersonalizado.objects.all().delete()
+    Role.objects.all().delete()
 
-        # Verifica se 'saida' foi enviado na requisição
-        if 'saida' not in request.data:
-            return Response({"detail": "O campo 'saida' é obrigatório."}, status=status.HTTP_400_BAD_REQUEST)
+    data = request.data
+    deps_ser = DepartamentoSerializer(data=data.get('departamentos', []), many=True)
+    fields_ser = Campo_PersonalizadoSerializer(data=data.get('campos_personalizado', []), many=True)
+    roles_ser = RoleSerializer(data=data.get('roles', []), many=True)
 
-        # Atualiza o campo 'saida' do objeto
-        assiduidade.saida = request.data['saida']
-        assiduidade.save()
+    deps_ser.is_valid(raise_exception=True)
+    fields_ser.is_valid(raise_exception=True)
+    roles_ser.is_valid(raise_exception=True)
 
-        # Serializa a resposta para retornar o registro atualizado
-        serializer = AssiduidadeSerializer(assiduidade)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    deps_ser.save()
+    fields_ser.save()
+    roles_ser.save()
 
-# As views existentes continuam inalteradas
-class FuncionarioListCreateView(generics.ListCreateAPIView):
-    queryset = Funcionario.objects.all()
-    serializer_class = FuncionarioSerializer
+    return Response({'status': 'ok'}, status=status.HTTP_201_CREATED)
 
-class FuncionarioRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Funcionario.objects.all()
-    serializer_class = FuncionarioSerializer
 
-class AssiduidadeListCreateView(generics.ListCreateAPIView):
-    queryset = Assiduidade.objects.all().order_by('-data')
-    serializer_class = AssiduidadeSerializer
+@api_view(['GET', 'POST'])
+def funcionarios_list_create(request):
+    if request.method == 'GET':
+        qs = Funcionario.objects.all()
+        ser = FuncionarioSerializer(qs, many=True)
+        return Response(ser.data)
 
-class AssiduidadeRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Assiduidade.objects.all()
-    serializer_class = AssiduidadeSerializer
+    ser = FuncionarioSerializer(data=request.data)
+    ser.is_valid(raise_exception=True)
+    ser.save()
+    return Response(ser.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET', 'PUT', 'DELETE'])
+def funcionario_detail_update_delete(request, pk):
+    try:
+        obj = Funcionario.objects.get(pk=pk)
+    except Funcionario.DoesNotExist:
+        return Response({'detail': 'Não encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        ser = FuncionarioSerializer(obj)
+        return Response(ser.data)
+
+    if request.method == 'PUT':
+        ser = FuncionarioSerializer(obj, data=request.data)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data)
+
+    obj.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)

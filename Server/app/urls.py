@@ -1,11 +1,12 @@
 from django.urls import path
-from .views import AssiduidadeSaidaUpdateView, FuncionarioListCreateView, FuncionarioRetrieveUpdateDestroyView, AssiduidadeListCreateView,AssiduidadeRetrieveUpdateDestroyView
+from .views import (
+    batch_config,
+    funcionarios_list_create,
+    funcionario_detail_update_delete
+)
 
 urlpatterns = [
-    path('funcionarios/', FuncionarioListCreateView.as_view(), name="funcionario-list-create"),
-    path('funcionarios/<int:pk>/', FuncionarioRetrieveUpdateDestroyView.as_view(), name="funcionario-detail"),
-    path('assiduidade/', AssiduidadeListCreateView.as_view(), name="assiduidade-list-create"),
-    path('assiduidade/<int:pk>/', AssiduidadeRetrieveUpdateDestroyView.as_view(), name="assiduidade-detail"),
-     path('assiduidade/<int:pk>/', AssiduidadeRetrieveUpdateDestroyView.as_view(), name='assiduidade-detail'),
-    path('assiduidade/<int:pk>/saida/', AssiduidadeSaidaUpdateView.as_view(), name='assiduidade-saida-update'), 
+    path('batch-config/', batch_config, name='batch-config'),
+    path('funcionarios/', funcionarios_list_create, name='funcionarios-list-create'),
+    path('funcionarios/<int:pk>/', funcionario_detail_update_delete, name='funcionario-detail'),
 ]

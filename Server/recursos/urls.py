@@ -3,5 +3,5 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('app.urls')),  # Certifique-se de que a app 'hr' esteja instalada
+    path('api/empresa/', include('app.urls')),  # Certifique-se de que a app 'hr' esteja instalada
 ]
